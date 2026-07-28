@@ -41,6 +41,13 @@ If you are on a Mac, double-click:
 run_mac.command
 ```
 
+If the Mac blocks the double-click:
+
+1. Open Terminal.
+2. Type `zsh` and one space.
+3. Drag `run_mac.command` into Terminal.
+4. Press Return.
+
 If you are on Windows, double-click:
 
 ```text
@@ -110,6 +117,14 @@ To stop it:
 
 1. Click the Terminal window.
 2. Press `Control + C`.
+
+On Mac, local configuration and chat history are stored privately in:
+
+```text
+~/Library/Application Support/Delphic AI
+```
+
+An API key pasted into the app stays in memory only while Delphic AI is running.
 
 ## If It Does Not Work
 

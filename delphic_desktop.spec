@@ -85,8 +85,8 @@ if sys.platform == "darwin":
         info_plist={
             "CFBundleName": APP_NAME,
             "CFBundleDisplayName": APP_NAME,
-            "CFBundleShortVersionString": "0.1.7",
-            "CFBundleVersion": "0.1.7",
+            "CFBundleShortVersionString": "0.1.8",
+            "CFBundleVersion": "0.1.8",
             "NSHighResolutionCapable": True,
         },
     )

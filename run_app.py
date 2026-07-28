@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import os
 import secrets
+import shutil
 import subprocess
 import sys
 import time
@@ -23,9 +24,9 @@ ROOT = Path(__file__).resolve().parent
 VENV_DIR = ROOT / ".venv"
 REQUIREMENTS_FILE = ROOT / "requirements.txt"
 REQUIREMENTS_STAMP = VENV_DIR / ".requirements.sha256"
-ENV_FILE = ROOT / ".env"
 ENV_EXAMPLE_FILE = ROOT / ".env.example"
 DEFAULT_PORT = "5001"
+APP_NAME = "Delphic AI"
 
 
 def protect_private_file(path: Path) -> None:
@@ -36,6 +37,28 @@ def protect_private_file(path: Path) -> None:
         path.chmod(0o600)
     except OSError:
         pass
+
+
+def protect_private_directory(path: Path) -> None:
+    """Restrict a local data directory to the current account on Unix."""
+    if os.name == "nt" or not path.exists():
+        return
+    try:
+        path.chmod(0o700)
+    except OSError:
+        pass
+
+
+def user_data_dir() -> Path:
+    configured_dir = os.getenv("DELPHIC_DATA_DIR")
+    if configured_dir:
+        return Path(configured_dir).expanduser()
+    if os.name == "nt":
+        base_dir = os.getenv("APPDATA") or str(Path.home())
+        return Path(base_dir) / APP_NAME
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / APP_NAME
+    return Path.home() / ".local" / "share" / "delphic-ai"
 
 
 def venv_python() -> Path:
@@ -82,10 +105,22 @@ def install_dependencies(python_path: Path) -> None:
     REQUIREMENTS_STAMP.write_text(current_hash + "\n")
 
 
-def ensure_env_file() -> None:
-    if ENV_FILE.exists():
-        protect_private_file(ENV_FILE)
-        return
+def ensure_env_file(data_dir: Path) -> Path:
+    data_dir.mkdir(parents=True, exist_ok=True)
+    protect_private_directory(data_dir)
+    env_file = data_dir / ".env"
+
+    if env_file.exists():
+        protect_private_file(env_file)
+        return env_file
+
+    legacy_env_file = ROOT / ".env"
+    if legacy_env_file.exists() and legacy_env_file != env_file:
+        shutil.copyfile(legacy_env_file, env_file)
+        protect_private_file(env_file)
+        print(f"Copied existing settings to {data_dir}")
+        return env_file
+
     if not ENV_EXAMPLE_FILE.exists():
         raise SystemExit(".env.example was not found.")
 
@@ -94,15 +129,16 @@ def ensure_env_file() -> None:
         "FLASK_SECRET_KEY=change-me-in-development",
         f"FLASK_SECRET_KEY={secrets.token_urlsafe(32)}",
     )
-    ENV_FILE.write_text(env_text)
-    protect_private_file(ENV_FILE)
-    print("Created .env from .env.example.")
+    env_file.write_text(env_text)
+    protect_private_file(env_file)
+    print(f"Created private settings in {data_dir}")
+    return env_file
 
 
-def read_env_value(name: str) -> str:
-    if not ENV_FILE.exists():
+def read_env_value(name: str, env_file: Path) -> str:
+    if not env_file.exists():
         return ""
-    for line in ENV_FILE.read_text().splitlines():
+    for line in env_file.read_text().splitlines():
         clean = line.strip()
         if not clean or clean.startswith("#") or "=" not in clean:
             continue
@@ -129,16 +165,16 @@ def looks_like_real_api_key(api_key: str) -> bool:
     return len(clean_key) >= 12 and clean_key not in placeholders and not clean_key.startswith("your-")
 
 
-def warn_if_api_key_missing() -> None:
-    groq_key = read_env_value("GROQ_API_KEY")
-    openai_key = read_env_value("OPENAI_API_KEY")
+def warn_if_api_key_missing(env_file: Path) -> None:
+    groq_key = read_env_value("GROQ_API_KEY", env_file)
+    openai_key = read_env_value("OPENAI_API_KEY", env_file)
     other_keys = [
-        read_env_value("ANTHROPIC_API_KEY"),
-        read_env_value("GOOGLE_API_KEY"),
-        read_env_value("MISTRAL_API_KEY"),
-        read_env_value("TOGETHER_API_KEY"),
-        read_env_value("XAI_API_KEY"),
-        read_env_value("DEEPSEEK_API_KEY"),
+        read_env_value("ANTHROPIC_API_KEY", env_file),
+        read_env_value("GOOGLE_API_KEY", env_file),
+        read_env_value("MISTRAL_API_KEY", env_file),
+        read_env_value("TOGETHER_API_KEY", env_file),
+        read_env_value("XAI_API_KEY", env_file),
+        read_env_value("DEEPSEEK_API_KEY", env_file),
     ]
     if not any(looks_like_real_api_key(key) for key in [groq_key, openai_key, *other_keys]):
         print()
@@ -146,23 +182,28 @@ def warn_if_api_key_missing() -> None:
         print()
 
 
-def start_app(python_path: Path) -> int:
+def start_app(python_path: Path, data_dir: Path, env_file: Path) -> int:
     port = os.getenv("PORT", DEFAULT_PORT)
     url = f"http://127.0.0.1:{port}"
     env = os.environ.copy()
     env.setdefault("PORT", port)
     env.setdefault("FLASK_DEBUG", "false")
     env.setdefault("DELPHIC_TRUSTED_HOSTS", "127.0.0.1,localhost")
+    env.setdefault("DELPHIC_DATA_DIR", str(data_dir))
+    env.setdefault("DELPHIC_ENV_FILE", str(env_file))
     env.setdefault("PYTHONUNBUFFERED", "1")
 
     print(f"Starting Delphic AI at {url}")
+    print(f"Settings and chat history are stored in: {data_dir}")
     process = subprocess.Popen([str(python_path), "app.py"], cwd=ROOT, env=env)
 
     try:
         time.sleep(1.5)
         if process.poll() is not None:
             return process.returncode
-        webbrowser.open(url)
+        should_open_browser = os.getenv("DELPHIC_OPEN_BROWSER", "true").lower() != "false"
+        if should_open_browser and not webbrowser.open(url):
+            print(f"Open this address in your browser: {url}")
         return process.wait()
     except KeyboardInterrupt:
         print("\nStopping Delphic AI...")
@@ -176,11 +217,18 @@ def start_app(python_path: Path) -> int:
 
 def main() -> int:
     ensure_supported_python()
+    data_dir = user_data_dir()
     python_path = ensure_virtual_environment()
-    install_dependencies(python_path)
-    ensure_env_file()
-    warn_if_api_key_missing()
-    return start_app(python_path)
+    try:
+        install_dependencies(python_path)
+    except subprocess.CalledProcessError:
+        print()
+        print("Delphic AI could not install its Python packages.")
+        print("Check your internet connection, then open the launcher again.")
+        return 1
+    env_file = ensure_env_file(data_dir)
+    warn_if_api_key_missing(env_file)
+    return start_app(python_path, data_dir, env_file)
 
 
 if __name__ == "__main__":

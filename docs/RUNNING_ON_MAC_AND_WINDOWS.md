@@ -18,6 +18,8 @@ Mac users click:
 run_mac.command
 ```
 
+If macOS blocks the double-click, open Terminal, type `zsh` and one space, drag `run_mac.command` into Terminal, and press Return.
+
 Windows users click:
 
 ```text
@@ -56,6 +58,14 @@ Then a popup asks for:
 - AI provider
 - API key
 
+On Mac, private local configuration and chat history are stored in:
+
+```text
+~/Library/Application Support/Delphic AI
+```
+
+An API key entered in the popup stays in memory only while Delphic AI is running.
+
 ## What `.venv` Means
 
 `.venv` is the app's own toolbox.
@@ -93,16 +103,8 @@ The picked models are meant to be a good mix:
 
 So the app does not automatically choose the most expensive model.
 
-## Is This Easy For Everyone?
+## What Users Still Need
 
-It is much easier than before.
-
-But some people may still need help with:
-
-- Installing Python
-- Choosing an AI provider
-- Pasting the AI key
-
-The easiest version is putting Delphic AI online.
-
-Then people only need one website link.
+- Python 3.10 or newer
+- An internet connection during the first setup
+- An API key for one supported provider

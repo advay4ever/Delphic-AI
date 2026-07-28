@@ -19,7 +19,7 @@ For the simplest local setup, start with [START_HERE.md](START_HERE.md).
 | Math rendering | KaTeX |
 | Math verification | SymPy for supported expressions and equations |
 | Graphing | Desmos in the Math tutor |
-| Automated tests | 36 tests |
+| Automated tests | 51 tests |
 
 ## Workspaces
 
@@ -207,9 +207,18 @@ The easiest option is to download or clone the project, then run the launcher fo
 - macOS: double-click `run_mac.command`, or run `python3 run_app.py`
 - Windows: double-click `run_windows.bat`, or run `py -3 run_app.py`
 
-The launcher creates `.venv`, installs `requirements.txt`, creates `.env` from `.env.example` if needed, starts the app, and opens `http://127.0.0.1:5001`.
+The launcher creates `.venv`, installs `requirements.txt`, creates private settings if needed, starts the app, and opens `http://127.0.0.1:5001`.
 
-After the first launch, set the local values in `.env`:
+On macOS, double-click `run_mac.command`. If Finder blocks it, open Terminal, type `zsh` and one space, drag `run_mac.command` into Terminal, and press Return.
+
+The source launcher stores private configuration and chat history outside the downloaded project:
+
+- macOS: `~/Library/Application Support/Delphic AI`
+- Windows: `%APPDATA%\Delphic AI`
+
+After the first launch, use **AI Settings** in Delphic AI to choose a provider and add an API key. Manual `.env` configuration is also supported:
+
+An API key entered through **AI Settings** stays in memory only while Delphic AI is running. Users who intentionally want a persistent key can add it to the private `.env` file in the data folder above.
 
 ```text
 GROQ_API_KEY=your-groq-api-key-here

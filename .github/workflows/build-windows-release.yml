@@ -9,7 +9,7 @@ on:
       release_tag:
         description: GitHub release tag to receive the Windows download
         required: true
-        default: v0.1.7
+        default: v0.1.8
 
 permissions:
   contents: read
@@ -92,7 +92,7 @@ jobs:
         id: package
         shell: pwsh
         run: |
-          $tag = "${{ inputs.release_tag || 'v0.1.7' }}"
+          $tag = "${{ inputs.release_tag || 'v0.1.8' }}"
           $archive = "Delphic-AI-$tag-Windows-x64.zip"
           Compress-Archive -Path ".\dist\Delphic AI.exe" -DestinationPath $archive
           $checksum = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLower()
