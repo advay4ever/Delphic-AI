@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Delphic Science</title>
+    <link rel="icon" href="{{ url_for('static', filename='assets/delphic-logo-mark.png') }}" />
+
+    <!-- Audited, version-pinned local copies of KaTeX and Marked -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/katex/katex.min.css') }}" />
+    <script defer src="{{ url_for('static', filename='vendor/katex/katex.min.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='vendor/katex/contrib/auto-render.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/marked/marked.umd.js') }}"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20260715-math-outline" />
+</head>
+<body
+    data-tutor-mode="science"
+    data-api-base="/science"
+    data-graphing-enabled="false"
+    data-practice-prompt="Give me a science practice question about the last topic."
+    data-practice-button-label="Practice This Concept"
+    data-quiz-prompt="Start a 5-question science quiz. Ask me one question at a time and wait for my answers."
+    data-quiz-button-label="Quiz Mode"
+    data-download-button-label="Download Transcript"
+>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+            <div class="sidebar-header">
+                <span class="logo">
+                    <img src="{{ url_for('static', filename='assets/delphic-logo-mark.png') }}" alt="" />
+                </span>
+                <div>
+                    <h2>Delphic Science</h2>
+                    <span class="sidebar-subtitle">Science workspace</span>
+                </div>
+            </div>
+
+            <button class="new-chat-btn" id="newChatBtn">New Chat</button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">
+                <h3>Workspace</h3>
+                <div class="workspace-switches">
+                    <a class="workspace-switch workspace-home-link" href="/" aria-label="Back to home page">Home</a>
+                    <a class="workspace-switch" href="/#tutor" aria-label="Switch to Math tutor">Math tutor</a>
+                    <a class="workspace-switch is-current" href="/science" aria-current="page">Science tutor</a>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Current Session</h3>
+                <div class="session-current" id="currentSessionItem">
+                    <span class="session-dot active"></span>
+                    <span class="session-preview" id="currentSessionPreview">New conversation</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section sidebar-section-history">
+                <h3>Past Sessions</h3>
+                <ul class="session-list" id="pastSessionsList">
+                    <!-- populated by JS -->
+                </ul>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="token-counter">
+                <span class="token-label">Tokens used</span>
+                <span class="token-value" id="tokenCount">0</span>
+            </div>
+            <div class="sidebar-actions">
+                <button class="download-chat-btn" id="downloadChatBtn" title="Download current science chat transcript">
+                    Download Transcript
+                </button>
+                <button class="clear-btn" id="clearBtn" title="Clear conversation">
+                    Clear Chat
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <main class="chat-main">
+        <header class="chat-header">
+            <button class="menu-btn" id="menuBtn">☰</button>
+            <div class="chat-header-title">
+                <h1>Delphic Science</h1>
+                <span class="header-badge">Concepts, reasoning, and science practice</span>
+            </div>
+            <a class="workspace-switch header-switch" href="/#tutor" aria-label="Switch to Math tutor">Math tutor</a>
+            <button class="ai-settings-btn" id="aiSettingsBtn" type="button" title="AI provider settings">
+                AI Settings
+            </button>
+            <div class="theme-picker">
+                <button
+                    class="theme-toggle"
+                    id="themeToggle"
+                    type="button"
+                    aria-haspopup="menu"
+                    aria-expanded="false"
+                    aria-controls="themeMenu"
+                    title="Change theme"
+                >
+                    🌙 Light
+                </button>
+                <div class="theme-menu" id="themeMenu" role="menu" aria-label="Choose theme" hidden>
+                    <button class="theme-option" type="button" role="menuitemradio" aria-checked="false" data-theme-choice="light">🌙 Light</button>
+                    <button class="theme-option" type="button" role="menuitemradio" aria-checked="false" data-theme-choice="dark">☀️ Dark</button>
+                    <button class="theme-option" type="button" role="menuitemradio" aria-checked="false" data-theme-choice="neon">✨ Neon</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message assistant">
+                <div class="message-content tutor-welcome">
+                    <p class="welcome-kicker">Bring one science idea at a time.</p>
+                    <h2>Build the concept, then test the reasoning.</h2>
+                    <p>
+                        Ask about a concept, a vocabulary word, a formula, a practice question, or your own explanation.
+                        I will help you separate the main idea from the wording and check the evidence behind it.
+                    </p>
+                    <div class="starter-prompts" aria-label="Science starter prompts">
+                        <button type="button" data-prompt="Explain photosynthesis in simple words">Explain a concept</button>
+                        <button type="button" data-prompt="What does erosion mean in Earth science?">Define vocabulary</button>
+                        <button type="button" data-prompt="What does F = ma mean in real life?">Connect a formula</button>
+                        <button type="button" data-prompt="Check my reasoning: a chemical reaction creates new atoms">Check reasoning</button>
+                        <button type="button" data-prompt="Give me a practice question about ecosystems">Practice a concept</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-area">
+            <div class="input-wrapper">
+                <div class="text-pill">
+                    <textarea
+                        id="userInput"
+                        placeholder="Ask a science question..."
+                        rows="1"
+                    ></textarea>
+                    <button id="sendBtn" title="Send message">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+                <div class="science-control-row">
+                    <button class="quiz-mode-btn" id="quizModeBtn" type="button" title="Start a science quiz">
+                        Quiz Mode
+                    </button>
+                    <label class="step-toggle" for="stepByStepToggle">
+                        <span>Guided Reasoning Mode</span>
+                        <input type="checkbox" id="stepByStepToggle" aria-describedby="stepModeNote" />
+                        <span class="toggle-track" aria-hidden="true">
+                            <span class="toggle-thumb"></span>
+                        </span>
+                    </label>
+                </div>
+                <p class="step-mode-note" id="stepModeNote" hidden>
+                    Guided mode on: one idea, one question at a time.
+                </p>
+            </div>
+            <div class="input-meta-row">
+                <p class="disclaimer">AI can make mistakes. Double-check important science answers.</p>
+                <span class="char-counter" id="charCounter"></span>
+            </div>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='script.js') }}?v=20260715-math-outline"></script>
+</body>
+</html>

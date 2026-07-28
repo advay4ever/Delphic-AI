@@ -1,0 +1,42 @@
+# Python bytecode/cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+.venv/
+env/
+.Python
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Local databases and app state
+*.db
+*.sqlite
+*.sqlite3
+instance/
+
+# Test and coverage output
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build/package output
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# Frontend/tool caches
+.webassets-cache
+
+# Editor and operating system files
+.vscode/
+.idea/
+.DS_Store

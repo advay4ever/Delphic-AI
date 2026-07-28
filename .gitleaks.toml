@@ -1,0 +1,9 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Desmos's documented public development key, included in its client-side example URL."
+regexTarget = "match"
+regexes = [
+  '''dcb31709b452b1cf9dc26972add0fda6''',
+]
