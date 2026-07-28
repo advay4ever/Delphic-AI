@@ -44,7 +44,10 @@ fi
   cd "$staging_root"
   COPYFILE_DISABLE=1 zip -q -r -X "$output_dir/$archive_name" "Delphic AI"
 )
-shasum -a 256 "$output_dir/$archive_name" > "$output_dir/$archive_name.sha256"
+(
+  cd "$output_dir"
+  shasum -a 256 "$archive_name" > "$archive_name.sha256"
+)
 
 echo "Created:"
 echo "$output_dir/$archive_name"
