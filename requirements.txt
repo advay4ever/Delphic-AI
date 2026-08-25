@@ -3,4 +3,4 @@ openai==1.68.0
 httpx==0.28.1
 python-dotenv==1.2.2
 sympy==1.13.3
-gunicorn==23.0.0; platform_system != "Windows"
+gunicorn==26.1.0; platform_system != "Windows"
