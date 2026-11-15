@@ -11,11 +11,16 @@
 
 import os
 import sys
+from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_submodules
 
 
 APP_NAME = "Delphic AI"
+APP_VERSION = (Path(SPECPATH) / "VERSION").read_text(encoding="utf-8").strip()
+version_parts = APP_VERSION.split(".")
+if len(version_parts) != 3 or not all(part.isdigit() for part in version_parts):
+    raise ValueError(f"Invalid VERSION value: {APP_VERSION!r}")
 ICON_PATH = (
     "packaging/delphic-ai.icns"
     if sys.platform == "darwin"
@@ -26,13 +31,20 @@ ICON_PATH = (
 CODESIGN_IDENTITY = os.getenv("DELPHIC_CODESIGN_IDENTITY") or None
 
 datas = [
+    ("images/evaluation_cases.json", "images"),
     ("templates", "templates"),
     ("static", "static"),
     (".env.example", "."),
+    ("VERSION", "."),
 ]
 
 hiddenimports = [
+    *collect_submodules("pypdf"),
+    *collect_submodules("docx"),
     *collect_submodules("ai"),
+    *collect_submodules("images"),
+    *collect_submodules("science"),
+    *collect_submodules("keyring.backends"),
 ]
 
 a = Analysis(
@@ -85,8 +97,8 @@ if sys.platform == "darwin":
         info_plist={
             "CFBundleName": APP_NAME,
             "CFBundleDisplayName": APP_NAME,
-            "CFBundleShortVersionString": "0.1.8",
-            "CFBundleVersion": "0.1.8",
+            "CFBundleShortVersionString": APP_VERSION,
+            "CFBundleVersion": APP_VERSION,
             "NSHighResolutionCapable": True,
         },
     )

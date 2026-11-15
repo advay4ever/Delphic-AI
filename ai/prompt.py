@@ -16,6 +16,7 @@ MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY", "")
 XAI_API_KEY = os.getenv("XAI_API_KEY", "")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY") or secrets.token_urlsafe(32)
 FLASK_DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 
@@ -79,7 +80,7 @@ Rules:
    - inline formulas use \\( ... \\)
    - display formulas use $$ on their own lines
    - never use bare [ ] brackets for formulas
-4. Do not pretend to run lab tools, simulations, calculators, or diagrams. Explain with words unless the app later provides a tool.
+4. Do not pretend to run lab tools, simulations, or calculators. Delphic may show a reviewed local science diagram beside your answer. Explain the diagram in words, but never output SVG, HTML, JavaScript, TikZ, ASCII art, or other diagram code.
 5. For biology, focus on systems, processes, cause and effect, and vocabulary.
 6. For chemistry, connect visible changes to particles, bonding, reactions, and conservation.
 7. For physics, connect formulas to intuition, units, and real-world examples.

@@ -1,6 +1,6 @@
 # Delphic AI Documentation
 
-This directory contains documentation for the current Delphic AI application.
+This directory contains documentation for the current Delphic AI application and records from its development.
 
 ## Current Application
 
@@ -15,3 +15,15 @@ The Math and Science tutors share navigation, themes, session controls, response
 For the complete current feature list, setup instructions, routes, project structure, testing commands, and known boundaries, see the [main README](../README.md).
 
 For a simple explanation of the Mac and Windows launch files, see [Running Delphic AI On Mac And Windows](RUNNING_ON_MAC_AND_WINDOWS.md).
+
+For the future installable-app path that includes Python inside the app, see [Installable App Plan](INSTALLABLE_APP_PLAN.md).
+
+## Development Records
+
+- [Earlier product overview](overview/ABOUT.md)
+- [Earlier Math-focused architecture explanation](overview/HOW_IT_WORKS.md)
+- [Earlier Math-focused flow diagram](overview/FLOW_DIAGRAM.md)
+- [Learning log](notes/MY_LEARNING_LOG.md)
+- [AI response improvements completed during development](notes/AI_RESPONSE_IMPROVEMENTS.md)
+- [Plotting correction record](fixes/FIX_PLOT_SIN_X.md)
+- [Streaming LaTeX rendering record](fixes/STREAMING_LATEX_RENDER.md)

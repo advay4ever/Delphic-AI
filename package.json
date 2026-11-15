@@ -1,0 +1,25 @@
+{
+  "name": "delphic-ai",
+  "description": "Delphic AI is a web-based learning assistant with separate Math and Science tutor workspaces. Both tutors run in the same Flask application on port `5001`, while keeping their interfaces, prompts, tools, and conversation histories separate.",
+  "private": true,
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/advay4ever/Math-AI-agent.git"
+  },
+  "keywords": [],
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/advay4ever/Math-AI-agent/issues"
+  },
+  "homepage": "https://github.com/advay4ever/Math-AI-agent#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}

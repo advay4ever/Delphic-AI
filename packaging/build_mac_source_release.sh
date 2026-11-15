@@ -1,10 +1,14 @@
 #!/bin/zsh
 set -euo pipefail
 
-release_version=${1:-0.1.8}
 script_dir=${0:A:h}
 project_dir=${script_dir:h}
-output_dir=${2:-"$project_dir/dist"}
+release_version=$(tr -d '[:space:]' < "$project_dir/VERSION")
+if [[ ! $release_version =~ '^[0-9]+\.[0-9]+\.[0-9]+$' ]]; then
+  echo "VERSION must look like 1.2.3." >&2
+  exit 1
+fi
+output_dir=${1:-"$project_dir/dist"}
 archive_name="Delphic-AI-v${release_version}-macOS-Python.zip"
 staging_root=$(mktemp -d "${TMPDIR:-/tmp}/delphic-mac-source.XXXXXX")
 package_dir="$staging_root/Delphic AI"
@@ -14,16 +18,20 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "$package_dir/ai" "$package_dir/static" "$package_dir/templates"
+mkdir -p "$package_dir/ai" "$package_dir/images" "$package_dir/science" "$package_dir/static" "$package_dir/templates"
 
 cp "$project_dir/.env.example" "$package_dir/.env.example"
 cp "$project_dir/app.py" "$package_dir/app.py"
 cp "$project_dir/database.py" "$package_dir/database.py"
 cp "$project_dir/requirements.txt" "$package_dir/requirements.txt"
 cp "$project_dir/run_app.py" "$package_dir/run_app.py"
+cp "$project_dir/version.py" "$package_dir/version.py"
+cp "$project_dir/VERSION" "$package_dir/VERSION"
 cp "$project_dir/run_mac.command" "$package_dir/run_mac.command"
-cp "$project_dir/MAC_LAUNCHER_README.md" "$package_dir/README.md"
+cp "$project_dir/docs/readmes/MAC_LAUNCHER_README.md" "$package_dir/README.md"
 cp -R "$project_dir/ai/." "$package_dir/ai/"
+cp -R "$project_dir/images/." "$package_dir/images/"
+cp -R "$project_dir/science/." "$package_dir/science/"
 cp -R "$project_dir/static/." "$package_dir/static/"
 cp -R "$project_dir/templates/." "$package_dir/templates/"
 chmod 755 "$package_dir/run_mac.command"

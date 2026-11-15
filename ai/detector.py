@@ -14,8 +14,8 @@ from ai.math_tools import (
     differentiate,
     integrate_expr,
     factor_expression,
-    get_desmos_latex,
 )
+from ai.graphing import GraphingError, build_graph_spec
 from ai.service import extract_equation
 
 
@@ -25,22 +25,20 @@ def detect_and_solve(user_message: str, ai_config: dict | None = None) -> str | 
     Returns a string with the SymPy result, or None if it can't detect math.
     """
     text = user_message.lower().strip()
+    calculation_message, variable = _extract_requested_variable(user_message)
 
     # Try to extract a math expression from the message
     # We look for common patterns like "solve ...", "simplify ...", etc.
 
     # --- SOLVE ---
     if _matches(text, ["solve", "find x", "find the value", "what is x", "roots of"]):
-        expr = _extract_expression(user_message)
+        expr = _extract_expression(calculation_message, keep_equation=True)
         if expr:
-            result = solve_equation(expr)
+            result = solve_equation(expr, variable=variable)
             if result["success"]:
-                solutions = ", ".join(result["solutions"])
-                return (
-                    f"[SymPy verified answer] "
-                    f"Equation: $${result['equation_latex']}$$ "
-                    f"Solutions: $${solutions}$$"
-                )
+                return _solution_context(result)
+            if result.get("error_code") == "timeout":
+                return None
 
     # --- FACTOR ---
     if _matches(text, ["factor"]):
@@ -53,6 +51,8 @@ def detect_and_solve(user_message: str, ai_config: dict | None = None) -> str | 
                     f"Original: $${result['original_latex']}$$ "
                     f"Factored: $${result['factored_latex']}$$"
                 )
+            if result.get("error_code") == "timeout":
+                return None
 
     # --- SIMPLIFY ---
     if _matches(text, ["simplify", "reduce"]):
@@ -65,44 +65,44 @@ def detect_and_solve(user_message: str, ai_config: dict | None = None) -> str | 
                     f"Original: $${result['original_latex']}$$ "
                     f"Simplified: $${result['simplified_latex']}$$"
                 )
+            if result.get("error_code") == "timeout":
+                return None
 
     # --- DIFFERENTIATE ---
-    if _matches(text, ["derivative", "differentiate", "d/dx", "derive"]):
-        expr = _extract_expression(user_message)
+    if _matches(text, ["derivative", "differentiate", "derive"]) or re.search(r"\bd/d(?:[a-z]|theta)\b", text):
+        expr = _extract_expression(calculation_message)
         if expr:
-            result = differentiate(expr)
+            result = differentiate(expr, variable=variable)
             if result["success"]:
                 return (
                     f"[SymPy verified answer] "
                     f"Original: $${result['original_latex']}$$ "
                     f"Derivative: $${result['derivative_latex']}$$"
                 )
+            return None
 
     # --- INTEGRATE ---
     if _matches(text, ["integral", "integrate", "antiderivative"]):
-        expr = _extract_expression(user_message)
+        expr = _extract_expression(calculation_message)
         if expr:
-            result = integrate_expr(expr)
+            result = integrate_expr(expr, variable=variable)
             if result["success"]:
                 return (
                     f"[SymPy verified answer] "
                     f"Original: $${result['original_latex']}$$ "
                     f"Integral: $${result['integral_latex']}$$"
                 )
+            return None
 
     # --- FALLBACK: Ask AI to extract the equation from a word problem ---
     extracted = extract_equation(user_message, ai_config=ai_config)
     if extracted:
         # Try solving as an equation (if it has '=')
         if "=" in extracted:
-            result = solve_equation(extracted)
+            result = solve_equation(extracted, variable=variable)
             if result["success"]:
-                solutions = ", ".join(result["solutions"])
-                return (
-                    f"[SymPy verified answer] "
-                    f"Equation: $${result['equation_latex']}$$ "
-                    f"Solutions: $${solutions}$$"
-                )
+                return _solution_context(result)
+            return None
 
         # Otherwise try evaluating it as a simple expression
         result = simplify_expression(extracted)
@@ -116,55 +116,29 @@ def detect_and_solve(user_message: str, ai_config: dict | None = None) -> str | 
     return None
 
 
+def _solution_context(result: dict) -> str:
+    solutions = (", ".join(result["solutions"]) if result["solution_kind"] == "finite"
+                 else result["solution_set_latex"])
+    return (
+        f"[SymPy verified answer] Equation: $${result['equation_latex']}$$ "
+        f"Solutions: $${solutions}$$ "
+        f"Variable: {result['variable']}. Domain (complex numbers with original exclusions): "
+        f"$${result['domain_latex']}$$. Apply any real-only restriction requested by the student."
+    )
+
+
 def extract_plot_info(user_message: str) -> dict | None:
     """
-    Extract plot information for Desmos rendering.
-    Returns a dict with type='function' or type='points', plus Desmos-ready data.
-    Handles:
-      - "plot sin x", "graph y = x^2"
-      - bare "y = 2cos(x - pi/2)" with no plot keyword
-      - "f(x) = x^2 + 1"
+    Extract safe, renderer-neutral graph data.
+
+    Kept as a compatibility helper for callers that previously imported this
+    function from ai.detector. New code should call build_graph_spec directly
+    when it needs the student-friendly error message.
     """
-    text = user_message.lower().strip()
-
-    has_plot_keyword = _matches(text, ["plot", "graph", "draw", "sketch", "chart", "show me the graph"])
-    has_y_eq = bool(re.match(r"^\s*y\s*=", text)) or bool(re.match(r"^\s*f\s*\(\s*x\s*\)\s*=", text))
-
-    if not has_plot_keyword and not has_y_eq:
+    try:
+        return build_graph_spec(user_message)
+    except GraphingError:
         return None
-
-    # --- Points: (x, y) pairs ---
-    point_pattern = r"\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)"
-    found_points = re.findall(point_pattern, user_message)
-    if found_points:
-        points = [(float(x), float(y)) for x, y in found_points]
-        def _fmt(v):
-            return str(int(v)) if v == int(v) else str(v)
-        desmos_exprs = [f"({_fmt(x)},{_fmt(y)})" for x, y in points]
-        pts_latex = ",\\; ".join(f"({_fmt(x)},\\, {_fmt(y)})" for x, y in points)
-        return {
-            "type": "points",
-            "desmos_exprs": desmos_exprs,
-            "equation_latex": pts_latex,
-            "raw_expression": ", ".join(desmos_exprs),
-        }
-
-    # --- Function ---
-    expr = _extract_expression(user_message)
-    if not expr:
-        return None
-    expr = re.sub(r"^(y|f\s*\(\s*x\s*\))\s*=\s*", "", expr.strip(), flags=re.IGNORECASE)
-    if not re.search(r"\bx\b|\d", expr, re.IGNORECASE):
-        return None
-    result = get_desmos_latex(expr)
-    if result["success"]:
-        return {
-            "type": "function",
-            "desmos_latex": result["desmos_latex"],
-            "equation_latex": result["equation_latex"],
-            "raw_expression": expr,
-        }
-    return None
 
 
 def _matches(text: str, keywords: list[str]) -> bool:
@@ -172,7 +146,18 @@ def _matches(text: str, keywords: list[str]) -> bool:
     return any(kw in text for kw in keywords)
 
 
-def _extract_expression(message: str) -> str | None:
+def _extract_requested_variable(message: str) -> tuple[str, str | None]:
+    suffix = re.search(
+        r"\s+(?:with respect to|for)\s+([A-Za-z]|theta)\s*[?.!]*$",
+        message, flags=re.IGNORECASE,
+    )
+    derivative = re.search(r"\bd/d([A-Za-z]|theta)\b", message)
+    if suffix:
+        return message[:suffix.start()].rstrip(), suffix.group(1)
+    return message, derivative.group(1) if derivative else None
+
+
+def _extract_expression(message: str, *, keep_equation: bool = False) -> str | None:
     """
     Try to pull out the math expression from a natural language message.
     E.g. "Solve x^2 + 5x + 6 = 0" → "x^2 + 5x + 6 = 0"
@@ -187,10 +172,10 @@ def _extract_expression(message: str) -> str | None:
         r"(?:what is the |the )?(?:derivative|integral|antiderivative) (?:of )?",
         r"what (?:is|are) (?:the )?(?:roots?|solutions?|values?) (?:of|for|to)",
         r"(?:find|compute|calculate|evaluate)",
-        r"d/dx",
-        r"f\s*\(\s*x\s*\)\s*=\s*",   # f(x) = ... → strip prefix early (before 2x→2*x regex)
-        r"y\s*=\s*",                   # y = ... → strip prefix early
+        r"d/d(?:theta|[a-z])\b",
     ]
+    if not keep_equation:
+        prefixes.extend([r"f\s*\(\s*(?:theta|[a-z])\s*\)\s*=\s*", r"y\s*=\s*"])
 
     cleaned = text
     for prefix in prefixes:

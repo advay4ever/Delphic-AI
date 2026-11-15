@@ -1,0 +1,24 @@
+{% if tutor_mode == 'science' %}
+{% set starters = [
+    ('lightbulb', 'Explain a concept', 'Explain photosynthesis in simple words'),
+    ('spell-check', 'Define vocabulary', 'What does erosion mean in Earth science?'),
+    ('link', 'Connect a formula', 'What does F = ma mean in real life?'),
+    ('clipboard-check', 'Check reasoning', none),
+    ('pencil-line', 'Practice a concept', 'Give me a practice question about ecosystems'),
+    ('network', 'Show a diagram', 'Draw a plant cell diagram')
+] %}
+{% else %}
+{% set starters = [
+    ('sigma', 'Solve an equation', 'Solve 2x + 3 = 11'),
+    ('lightbulb', 'Explain a concept', 'Explain the chain rule in simple language'),
+    ('pencil-line', 'Give me practice', 'Give me a practice problem about solving linear equations')
+] %}
+{% endif %}
+<div class="starter-prompts" id="composerStarters" aria-label="{{ 'Science starter prompts' if tutor_mode == 'science' else 'Starter prompts' }}">
+    {% for icon, label, prompt in starters %}
+    <button type="button" {% if prompt is none %}data-composer-action="check-work"{% else %}data-prompt="{{ prompt }}"{% endif %}>
+        <svg class="entry-icon" aria-hidden="true"><use href="{{ url_for('static', filename='vendor/lucide/sidebar.svg') }}?v=20261012-entry-v1#{{ icon }}"></use></svg>
+        <span>{{ label }}</span>
+    </button>
+    {% endfor %}
+</div>

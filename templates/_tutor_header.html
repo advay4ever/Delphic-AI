@@ -1,0 +1,12 @@
+<header class="chat-header">
+    <button class="menu-btn" id="menuBtn" type="button" aria-label="Open sidebar" aria-controls="sidebar" aria-expanded="false" title="Open sidebar">
+        <svg class="sidebar-icon" aria-hidden="true"><use href="{{ url_for('static', filename='vendor/lucide/sidebar.svg') }}?v=20261012-header-v1#panel-left"></use></svg>
+    </button>
+    <div class="chat-header-title">
+        <h1>{{ tutor_title }}</h1>
+    </div>
+    <button class="ai-settings-btn" id="aiSettingsBtn" type="button" aria-haspopup="dialog" aria-controls="aiSettingsModal" title="Settings">
+        <svg class="sidebar-icon" aria-hidden="true"><use href="{{ url_for('static', filename='vendor/lucide/sidebar.svg') }}?v=20261012-header-v1#settings"></use></svg>
+        <span id="aiSettingsLabel">Settings</span>
+    </button>
+</header>

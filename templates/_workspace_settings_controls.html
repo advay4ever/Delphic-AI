@@ -1,0 +1,39 @@
+<!-- Moved into the Settings dialog before it is opened. -->
+<section class="workspace-settings-controls" id="workspaceSettingsControls" aria-labelledby="workspacePreferencesHeading" hidden>
+    <h3 id="workspacePreferencesHeading">Appearance</h3>
+    <div class="settings-preference-row">
+        <span id="themeLabel">Theme</span>
+        <div class="theme-picker">
+            <button class="theme-toggle" id="themeToggle" type="button" aria-labelledby="themeLabel themeToggle" aria-haspopup="menu" aria-expanded="false" aria-controls="themeMenu" title="Change theme">Dark</button>
+            <div class="theme-menu" id="themeMenu" role="menu" aria-label="Choose theme" hidden>
+                <button class="theme-option" type="button" role="menuitemradio" aria-checked="false" data-theme-choice="light">Light</button>
+                <button class="theme-option" type="button" role="menuitemradio" aria-checked="false" data-theme-choice="dark">Dark</button>
+                <button class="theme-option" type="button" role="menuitemradio" aria-checked="false" data-theme-choice="neon">Neon</button>
+            </div>
+        </div>
+    </div>
+    <fieldset class="neon-accent-controls" id="neonAccentControls" hidden>
+        <legend>Neon accent <span id="neonAccentName">Cyan</span></legend>
+        <div class="neon-accent-grid">
+            {% for id, label, color, text, ink in [
+                ('cyan', 'Cyan', '#00FFFF', '#00FFFF', '#102326'),
+                ('electric-blue', 'Electric blue', '#00BFFF', '#00BFFF', '#102326'),
+                ('mint', 'Mint', '#00FFA3', '#00FFA3', '#102326'),
+                ('green', 'Green', '#39FF14', '#39FF14', '#102326'),
+                ('yellow', 'Yellow', '#FFFF33', '#FFFF33', '#102326'),
+                ('orange', 'Orange', '#FF5F1F', '#FF9C75', '#102326'),
+                ('pink', 'Pink', '#FF10F0', '#FF72F7', '#102326'),
+                ('purple', 'Purple', '#BC13FE', '#DDA6FF', '#FFFFFF')
+            ] %}
+            <label class="neon-accent-option" title="{{ label }}" style="--swatch-color: {{ color }}; --swatch-ink: {{ ink }}">
+                <input type="radio" name="neon-accent" value="{{ id }}" aria-label="{{ label }}" data-neon-color="{{ color }}" data-neon-text="{{ text }}" data-neon-ink="{{ ink }}" />
+                <span class="neon-accent-swatch" aria-hidden="true"><svg><use href="{{ url_for('static', filename='vendor/lucide/sidebar.svg') }}#check"></use></svg></span>
+            </label>
+            {% endfor %}
+        </div>
+    </fieldset>
+    <div class="token-counter">
+        <span class="token-label">Tokens used in this chat</span>
+        <span class="token-value" id="tokenCount">0</span>
+    </div>
+</section>

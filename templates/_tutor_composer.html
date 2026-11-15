@@ -1,0 +1,59 @@
+<div class="chat-input-area">
+    <div id="attachmentTray" class="attachment-tray" aria-label="Selected attachments" aria-live="polite" hidden></div>
+    <div class="input-wrapper">
+        <div class="text-pill">
+            <textarea id="userInput" aria-label="{{ 'Science question' if tutor_mode == 'science' else 'Math question' }}" placeholder="Ask a {{ tutor_mode }} question..." rows="1"></textarea>
+            <div class="composer-input-actions">
+                {% include '_attachment_controls.html' %}
+                <button id="addPhotoBtn" class="add-photo-btn" type="button" title="Choose a photo of your problem">
+                    <svg class="entry-icon" aria-hidden="true"><use href="{{ url_for('static', filename='vendor/lucide/sidebar.svg') }}?v=20261012-entry-v1#camera"></use></svg>
+                    <span>Add photo</span>
+                </button>
+                <button id="sendBtn" type="button" title="Send message" aria-label="Send message">
+                    <svg class="entry-icon" aria-hidden="true"><use href="{{ url_for('static', filename='vendor/lucide/sidebar.svg') }}?v=20261012-entry-v1#arrow-up"></use></svg>
+                </button>
+            </div>
+        </div>
+        {% if image_generation_enabled %}
+        <div class="image-composer-tools">
+            <button class="image-mode-btn" id="imageModeBtn" type="button" aria-pressed="false" aria-controls="imageModeSelect">
+                <span class="image-mode-icon" aria-hidden="true">+</span>
+                <span>Create image</span>
+            </button>
+            <label class="image-mode-picker" id="imageModePicker" hidden>
+                <span class="sr-only">Image type</span>
+                <select id="imageModeSelect">
+                    <option value="educational_visual">Educational visual</option>
+                    <option value="realistic_image">Realistic image</option>
+                    <option value="creative_illustration">Creative illustration</option>
+                </select>
+            </label>
+        </div>
+        {% endif %}
+        {% include '_tutor_starters.html' %}
+        <div class="entry-toolbar">
+            <div class="notes-control">
+                <button id="libraryComposerStatus" class="library-composer-status" type="button" aria-haspopup="dialog" aria-controls="studyLibraryDialog" aria-describedby="libraryComposerTooltip">
+                    <span id="libraryComposerIcon" class="library-composer-icon" aria-hidden="true" hidden><svg class="entry-icon"><use href="{{ url_for('static', filename='vendor/lucide/sidebar.svg') }}?v=20261012-entry-v1#plus"></use></svg></span>
+                    <span id="libraryComposerLabel">Study notes</span>
+                </button>
+                <span id="libraryComposerTooltip" class="notes-tooltip" role="tooltip">Open Study Library to add or select saved notes for {{ tutor_mode }} chats.</span>
+            </div>
+            <div class="tutoring-controls">
+                {% if tutor_mode == 'science' %}
+                <button class="quiz-mode-btn" id="quizModeBtn" type="button" title="Start a science quiz">Quiz Mode</button>
+                {% endif %}
+                <label class="step-toggle" for="stepByStepToggle">
+                    <span>{{ 'Guide my reasoning' if tutor_mode == 'science' else 'Guide me step by step' }}</span>
+                    <input type="checkbox" id="stepByStepToggle" aria-describedby="stepModeNote" />
+                    <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+                </label>
+            </div>
+        </div>
+        <p class="step-mode-note sr-only" id="stepModeNote" hidden>{{ 'Guided mode on: one idea, one question at a time.' if tutor_mode == 'science' else 'Guided mode on: one step, one question at a time.' }}</p>
+    </div>
+    <div class="input-meta-row">
+        <p class="disclaimer">AI can make mistakes. Double-check important{{ ' science' if tutor_mode == 'science' else '' }} answers.</p>
+        <span class="char-counter" id="charCounter"></span>
+    </div>
+</div>

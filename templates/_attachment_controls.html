@@ -1,0 +1,13 @@
+<div class="attachment-picker">
+    <button id="attachmentBtn" type="button" class="attachment-add-btn" title="Add photos, files or study notes"
+        aria-label="Add photos, files or study notes" aria-haspopup="menu" aria-expanded="false" aria-controls="attachmentMenu">
+        <svg class="entry-icon" aria-hidden="true"><use href="{{ url_for('static', filename='vendor/lucide/sidebar.svg') }}?v=20261012-entry-v1#plus"></use></svg>
+    </button>
+    <div id="attachmentMenu" class="attachment-menu" role="menu" aria-label="Attachments" hidden>
+        <button type="button" role="menuitem" data-attachment-kind="photo">Add photos</button>
+        <button type="button" role="menuitem" data-attachment-kind="document">Upload files</button>
+        <button type="button" role="menuitem" data-study-library-add title="Save reusable notes in Study Library">Save study notes</button>
+    </div>
+    <input id="attachmentPhotoInput" type="file" accept=".jpg,.jpeg,.png,.webp" multiple hidden />
+    <input id="attachmentFileInput" type="file" accept=".txt,.md,.csv,.json,.pdf,.docx" multiple hidden />
+</div>

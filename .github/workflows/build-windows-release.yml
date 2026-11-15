@@ -88,11 +88,21 @@ jobs:
             }
           }
 
+      - name: Check packaged Study Library and restart persistence
+        run: python scripts/check_packaged_library.py --executable "dist/Delphic AI.exe" --port 51274
+
       - name: Package download
         id: package
         shell: pwsh
         run: |
-          $tag = "${{ inputs.release_tag || 'v0.1.8' }}"
+          $version = (Get-Content VERSION -Raw).Trim()
+          $tag = "${{ inputs.release_tag || '' }}"
+          if (-not $tag) {
+            $tag = "v$version"
+          }
+          if ($tag -ne "v$version") {
+            throw "Release tag $tag does not match VERSION ($version)."
+          }
           $archive = "Delphic-AI-$tag-Windows-x64.zip"
           Compress-Archive -Path ".\dist\Delphic AI.exe" -DestinationPath $archive
           $checksum = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLower()

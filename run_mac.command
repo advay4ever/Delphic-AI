@@ -4,6 +4,9 @@ cd "$script_dir" || exit 1
 
 finish() {
   launcher_status=$1
+  if [[ ${DELPHIC_NO_PAUSE:-false} == true ]]; then
+    exit "$launcher_status"
+  fi
   echo
   printf "Press Return to close this window."
   read -r
@@ -36,7 +39,7 @@ echo
 python3 run_app.py
 launcher_status=$?
 
-if (( launcher_status != 0 )); then
+if (( launcher_status != 0 && launcher_status != 130 )); then
   echo
   echo "Delphic AI stopped with an error."
   echo "Read the message above, then try opening run_mac.command again."

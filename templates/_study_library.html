@@ -1,0 +1,101 @@
+<dialog class="study-library-dialog" id="studyLibraryDialog" aria-labelledby="studyLibraryTitle">
+    <header class="study-library-header">
+        <div class="library-header-title">
+            <button type="button" id="libraryBackBtn" data-library-busy aria-label="Back to Study Library" title="Back to Study Library" hidden><svg class="tool-icon library-back-icon" aria-hidden="true"><use href="/static/vendor/lucide/sidebar.svg#arrow-up"></use></svg></button>
+            <h2 id="studyLibraryTitle">Study Library</h2>
+        </div>
+        <div class="library-header-actions">
+            <button type="button" id="libraryAddBtn" data-library-busy aria-label="Add note" title="Add note"><svg class="tool-icon" aria-hidden="true"><use href="/static/vendor/lucide/sidebar.svg#plus"></use></svg></button>
+            <button type="button" id="closeStudyLibrary" aria-label="Close Study Library" title="Close"><svg class="tool-icon" aria-hidden="true"><use href="/static/vendor/lucide/sidebar.svg#x"></use></svg></button>
+        </div>
+    </header>
+    <p class="library-privacy">Use notes you own or may share. Matching excerpts go to your AI provider and remain in saved chats, even after a note is deleted.</p>
+    <p id="studyLibraryStatus" role="status" aria-live="polite"></p>
+    <button id="librarySubjectSuggestion" type="button" hidden></button>
+        <section id="libraryMyNotesPanel" aria-label="Saved study notes">
+            <div id="libraryBrowse">
+            <div class="library-filters" role="group" aria-label="Find saved notes">
+                <label class="library-search" for="librarySearch">Search notes
+                    <input id="librarySearch" type="search" placeholder="Search titles and text" maxlength="200" autocomplete="off" />
+                </label>
+                <label for="libraryFilterSubject">Subject
+                    <select id="libraryFilterSubject">
+                        <option value="all">All subjects</option>
+                        <option value="math">Math</option>
+                        <option value="science">Science</option>
+                        <option value="both">Both</option>
+                    </select>
+                </label>
+                <label for="librarySort">Sort by
+                    <select id="librarySort">
+                        <option value="updated">Recently updated</option>
+                        <option value="title">Title A-Z</option>
+                    </select>
+                </label>
+            </div>
+            <div class="library-results">
+                <p id="libraryResultCount" role="status" aria-live="polite"></p>
+                <button id="libraryClearFilters" type="button" data-library-busy hidden>Clear filters</button>
+            </div>
+            <ul id="studyLibraryList"></ul>
+            </div>
+            <form id="libraryEditForm" class="library-edit-form" aria-labelledby="libraryEditHeading" hidden>
+                <h3 id="libraryEditHeading">Edit note</h3>
+                <label for="libraryEditTitle">Title</label>
+                <input id="libraryEditTitle" maxlength="80" required aria-describedby="libraryEditError" />
+                <label for="libraryEditSubject">Subject</label>
+                <select id="libraryEditSubject" aria-describedby="libraryEditError">
+                    <option value="math">Math</option>
+                    <option value="science">Science</option>
+                    <option value="both">Both tutors</option>
+                </select>
+                <label for="libraryEditText">Note text</label>
+                <textarea id="libraryEditText" rows="10" minlength="60" maxlength="12000" required aria-describedby="libraryEditError"></textarea>
+                <p id="libraryEditError" class="library-edit-error" role="alert"></p>
+                <p id="libraryEditDuplicate" class="library-duplicate" role="status" hidden></p>
+                <button id="libraryEditReload" type="button" data-library-busy hidden>Load latest saved note</button>
+                <div id="libraryEditDiscard" class="library-discard" role="group" aria-label="Unsaved changes" hidden>
+                    <p>Discard your unsaved changes?</p>
+                    <button id="libraryEditConfirmDiscard" type="button" data-library-busy>Discard changes</button>
+                    <button id="libraryEditKeep" type="button" data-library-busy>Keep editing</button>
+                </div>
+                <div class="library-edit-actions">
+                    <button type="submit">Save changes</button>
+                    <button id="libraryEditCancel" type="button" data-library-busy>Cancel</button>
+                </div>
+            </form>
+        </section>
+        <section id="libraryAddNotesPanel" aria-labelledby="libraryAddHeading" hidden>
+            <h3 id="libraryAddHeading">New note</h3>
+            <form id="studyLibraryForm">
+                <div class="library-dropzone" id="libraryDropzone" aria-label="Upload or drop one notes document">
+                    <button id="libraryUploadBtn" type="button" data-library-busy><svg class="tool-icon" aria-hidden="true"><use href="/static/vendor/lucide/sidebar.svg#upload"></use></svg> Upload notes</button>
+                    <span class="library-file-limits">TXT, MD, CSV, JSON, PDF, DOCX. Up to 4 MiB.</span>
+                </div>
+                <button id="libraryPasteBtn" type="button" data-library-busy>Paste notes</button>
+                <input type="file" id="studyLibraryFile" accept=".txt,.md,.csv,.json,.pdf,.docx" hidden />
+                <div id="libraryUploadConfirm" class="library-discard library-upload-confirm" role="group" aria-labelledby="libraryUploadConfirmTitle" aria-describedby="libraryUploadName" hidden>
+                    <p id="libraryUploadConfirmTitle">Replace your unfinished note with this document?</p>
+                    <p id="libraryUploadName"></p>
+                    <div class="library-edit-actions">
+                        <button id="libraryUploadKeep" type="button" data-library-busy>Keep my note</button>
+                        <button id="libraryUploadReplace" type="button" data-library-busy>Replace draft</button>
+                    </div>
+                </div>
+                <label for="studyLibraryNoteTitle">Title</label>
+                <input id="studyLibraryNoteTitle" maxlength="80" required />
+                <label for="studyLibrarySubject">Subject</label>
+                <select id="studyLibrarySubject">
+                    <option value="math">Math</option>
+                    <option value="science">Science</option>
+                    <option value="both">Both tutors</option>
+                </select>
+                <label for="studyLibraryText">Paste a note or review extracted text</label>
+                <textarea id="studyLibraryText" rows="8" minlength="60" maxlength="12000" required></textarea>
+                <label class="library-enabled"><input type="checkbox" id="studyLibraryEnabled" checked /> Use this note</label>
+                <p id="libraryAddDuplicate" class="library-duplicate" role="status" hidden></p>
+                <p class="library-save-privacy" id="librarySavePrivacy">Use notes you own or may share. When you ask a question, matching excerpts may go to your AI provider. Keep passwords, API keys, and private student information out of notes.</p>
+                <button type="submit">Save note</button>
+            </form>
+        </section>
+</dialog>

@@ -35,6 +35,9 @@ dist/
 
 # Frontend/tool caches
 .webassets-cache
+node_modules/
+playwright-report/
+test-results/
 
 # Editor and operating system files
 .vscode/

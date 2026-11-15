@@ -2,6 +2,7 @@ import pytest
 
 import app as app_module
 from ai.prompt import SCIENCE_TUTOR_SYSTEM_PROMPT
+from ai.service import AIResponse, AIStreamEvent, FINISH_REASON_COMPLETE, FINISH_REASON_LENGTH
 from app import (
     _build_messages_for_ai,
     _build_science_messages_for_ai,
@@ -198,14 +199,13 @@ def test_session_mode_filtering():
     assert not session_belongs_to_mode("abc", "science")
 
 
-def test_list_sessions_for_mode_filters_science_sessions(monkeypatch):
-    monkeypatch.setattr(app_module, "list_all_sessions", lambda: [
-        {"session_id": "math-1", "preview": "Solve 2x = 4"},
-        {"session_id": "science:1", "preview": "Explain photosynthesis"},
-    ])
-
-    assert [s["session_id"] for s in list_sessions_for_mode("math")] == ["math-1"]
-    assert [s["session_id"] for s in list_sessions_for_mode("science")] == ["science:1"]
+def test_list_sessions_for_mode_filters_science_sessions(authorize_chats):
+    import database
+    client = authorize_chats(app_module.app.test_client(), "math-1", "science:1")
+    database.save_message("math-1", "user", "Solve 2x = 4")
+    database.save_message("science:1", "user", "Explain photosynthesis")
+    assert [s["session_id"] for s in client.get("/sessions").json["sessions"]] == ["math-1"]
+    assert [s["session_id"] for s in client.get("/science/sessions").json["sessions"]] == ["science:1"]
 
 
 def test_science_page_renders():
@@ -218,11 +218,14 @@ def test_science_page_renders():
     assert b'aria-label="Switch to Math tutor"' in response.data
     assert b'aria-label="Back to home page"' in response.data
     assert b"Connect a formula" in response.data
-    assert b"Check my reasoning: a chemical reaction creates new atoms" in response.data
-    assert b"Guided Reasoning Mode" in response.data
+    assert b'<span>Check reasoning</span>' in response.data
+    assert b'data-composer-action="check-work"' in response.data
+    assert b"Check my reasoning: a chemical reaction creates new atoms" not in response.data
+    assert b"Guide my reasoning" in response.data
     assert b"Quiz Mode" in response.data
     assert b"Practice This Concept" in response.data
-    assert b"Download Transcript" in response.data
+    assert b'id="downloadChatBtn"' not in response.data
+    assert b'id="clearBtn"' not in response.data
     assert b"Step-by-Step Mode" not in response.data
     assert b"Practice Similar Problem" not in response.data
 
@@ -233,7 +236,7 @@ def test_math_page_links_to_science_workspace():
 
     assert response.status_code == 200
     assert b'href="/science"' in response.data
-    assert b"Math reasoning workspace" in response.data
+    assert b"<h1>Math tutor</h1>" in response.data
     assert b'data-start-tutor>Math tutor</button>' in response.data
     assert b"Start learning" not in response.data
     assert b'aria-label="Switch to Science tutor"' in response.data
@@ -271,12 +274,14 @@ def test_ai_settings_saves_provider_without_returning_key():
     response = client.post("/ai-settings", json={
         "provider": "groq",
         "api_key": "gsk-test-key-that-is-long-enough",
+        "model": "llama-3.1-8b-instant",
     })
 
     data = response.get_json()
     assert response.status_code == 200
     assert data["configured"] is True
     assert data["provider"] == "groq"
+    assert data["model"] == "llama-3.1-8b-instant"
     assert "api_key" not in data
     assert "gsk-test-key" not in response.get_data(as_text=True)
 
@@ -295,6 +300,21 @@ def test_ai_settings_rejects_non_ascii_api_key_without_saving_it():
     assert app_module.AI_SETTINGS_BY_SESSION == {}
 
 
+def test_ai_settings_rejects_unlisted_model_without_saving_it():
+    app_module.AI_SETTINGS_BY_SESSION.clear()
+    client = app_module.app.test_client()
+
+    response = client.post("/ai-settings", json={
+        "provider": "groq",
+        "api_key": "gsk-test-key-that-is-long-enough",
+        "model": "gpt-5.2",
+    })
+
+    assert response.status_code == 400
+    assert response.get_json()["error"] == "Choose one of the listed models."
+    assert app_module.AI_SETTINGS_BY_SESSION == {}
+
+
 def test_science_ask_uses_science_prompt(monkeypatch):
     captured = {}
     saved_messages = []
@@ -303,9 +323,13 @@ def test_science_ask_uses_science_prompt(monkeypatch):
         captured["messages"] = messages
         captured["system_prompt"] = system_prompt
         captured["ai_config"] = ai_config
-        return "Science answer\n\nCONFIDENCE: High", 12
+        return AIResponse(
+            text="Science answer\n\nCONFIDENCE: High",
+            tokens_used=12,
+            finish_reason=FINISH_REASON_COMPLETE,
+        )
 
-    monkeypatch.setattr(app_module, "save_message", lambda session_id, role, content: saved_messages.append((session_id, role, content)))
+    monkeypatch.setattr(app_module, "save_message", lambda session_id, role, content, **_metadata: saved_messages.append((session_id, role, content)) or 41)
     monkeypatch.setattr(app_module, "log_tokens", lambda session_id, tokens: None)
     monkeypatch.setattr(app_module, "get_total_tokens", lambda session_id: 12)
     monkeypatch.setattr(app_module, "get_math_solution", fake_get_math_solution)
@@ -320,6 +344,7 @@ def test_science_ask_uses_science_prompt(monkeypatch):
 
     assert response.status_code == 200
     assert response.get_json()["reply"] == "Science answer\n\nCONFIDENCE: High"
+    assert response.get_json()["finish_reason"] == FINISH_REASON_COMPLETE
     assert captured["system_prompt"] == SCIENCE_TUTOR_SYSTEM_PROMPT
     assert captured["ai_config"]["provider"] == "groq"
     assert saved_messages[0][0].startswith("science:")
@@ -334,7 +359,7 @@ def test_science_ask_redirects_graph_requests_without_calling_ai(monkeypatch):
     def fail_get_math_solution(*args, **kwargs):
         raise AssertionError("Science graph redirect should not call the AI service")
 
-    monkeypatch.setattr(app_module, "save_message", lambda session_id, role, content: saved_messages.append((session_id, role, content)))
+    monkeypatch.setattr(app_module, "save_message", lambda session_id, role, content, **_metadata: saved_messages.append((session_id, role, content)) or 42)
     monkeypatch.setattr(app_module, "get_total_tokens", lambda session_id: 0)
     monkeypatch.setattr(app_module, "get_math_solution", fail_get_math_solution)
 
@@ -348,19 +373,71 @@ def test_science_ask_redirects_graph_requests_without_calling_ai(monkeypatch):
     assert "graphing request" in saved_messages[1][2]
 
 
+def test_math_stream_sends_structured_completion_metadata(monkeypatch):
+    saved_messages = []
+    logged_tokens = []
+
+    def fake_get_math_solution_stream(messages, system_prompt=None, ai_config=None):
+        yield AIStreamEvent(text="A deliberately partial answer.")
+        yield AIStreamEvent(
+            done=True,
+            tokens_used=21,
+            finish_reason=FINISH_REASON_LENGTH,
+        )
+
+    monkeypatch.setattr(
+        app_module,
+        "save_message",
+        lambda session_id, role, content, **_metadata: saved_messages.append((session_id, role, content)) or 43,
+    )
+    monkeypatch.setattr(
+        app_module,
+        "log_tokens",
+        lambda session_id, tokens: logged_tokens.append((session_id, tokens)),
+    )
+    monkeypatch.setattr(app_module, "get_total_tokens", lambda session_id: 21)
+    monkeypatch.setattr(app_module, "get_math_solution_stream", fake_get_math_solution_stream)
+    monkeypatch.setattr(app_module, "get_active_ai_config", lambda: {
+        "provider": "groq",
+        "api_key": "gsk-test-key-that-is-long-enough",
+        "source": "test",
+    })
+
+    client = app_module.app.test_client()
+    response = client.post("/stream", json={"message": "Explain this problem carefully"})
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert app_module.format_stream_text("A deliberately partial answer.") in body
+    assert "event: complete" in body
+    assert '"tokens_used": 21' in body
+    assert '"finish_reason": "length"' in body
+    assert '"message_id": 43' in body
+    assert '"can_continue": true' in body
+    assert "[DONE:21]" in body
+    assert saved_messages[-1][1:] == ("assistant", "A deliberately partial answer.")
+    assert logged_tokens == [(saved_messages[-1][0], 21)]
+
+
 def test_science_stream_uses_science_prompt(monkeypatch):
     captured = {}
     saved_messages = []
+    logged_tokens = []
 
     def fake_get_math_solution_stream(messages, system_prompt=None, ai_config=None):
         captured["messages"] = messages
         captured["system_prompt"] = system_prompt
         captured["ai_config"] = ai_config
-        yield "Science stream answer\n\nCONFIDENCE: High", False, 0
-        yield "", True, 0
+        yield AIStreamEvent(text="Science stream answer\n\nCONFIDENCE: High")
+        yield AIStreamEvent(
+            done=True,
+            tokens_used=17,
+            finish_reason=FINISH_REASON_LENGTH,
+        )
 
-    monkeypatch.setattr(app_module, "save_message", lambda session_id, role, content: saved_messages.append((session_id, role, content)))
-    monkeypatch.setattr(app_module, "get_total_tokens", lambda session_id: 0)
+    monkeypatch.setattr(app_module, "save_message", lambda session_id, role, content, **_metadata: saved_messages.append((session_id, role, content)) or 44)
+    monkeypatch.setattr(app_module, "log_tokens", lambda session_id, tokens: logged_tokens.append((session_id, tokens)))
+    monkeypatch.setattr(app_module, "get_total_tokens", lambda session_id: 17)
     monkeypatch.setattr(app_module, "get_math_solution_stream", fake_get_math_solution_stream)
     monkeypatch.setattr(app_module, "get_active_ai_config", lambda: {
         "provider": "groq",
@@ -373,14 +450,19 @@ def test_science_stream_uses_science_prompt(monkeypatch):
     body = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert "data: Science stream answer" in body
-    assert "[DONE:0]" in body
+    assert app_module.format_stream_text("Science stream answer\n\nCONFIDENCE: High") in body
+    assert "event: complete" in body
+    assert '"finish_reason": "length"' in body
+    assert '"message_id": 44' in body
+    assert '"can_continue": true' in body
+    assert "[DONE:17]" in body
     assert captured["system_prompt"] == SCIENCE_TUTOR_SYSTEM_PROMPT
     assert captured["ai_config"]["provider"] == "groq"
     assert saved_messages[0][0].startswith("science:")
     assert saved_messages[0][1:] == ("user", "Explain atoms")
     assert saved_messages[1][0].startswith("science:")
     assert saved_messages[1][1:] == ("assistant", "Science stream answer\n\nCONFIDENCE: High")
+    assert logged_tokens == [(saved_messages[1][0], 17)]
 
 
 def test_science_stream_redirects_graph_requests_without_calling_ai(monkeypatch):
@@ -389,7 +471,7 @@ def test_science_stream_redirects_graph_requests_without_calling_ai(monkeypatch)
     def fail_get_math_solution_stream(*args, **kwargs):
         raise AssertionError("Science graph redirect should not call the AI service")
 
-    monkeypatch.setattr(app_module, "save_message", lambda session_id, role, content: saved_messages.append((session_id, role, content)))
+    monkeypatch.setattr(app_module, "save_message", lambda session_id, role, content, **_metadata: saved_messages.append((session_id, role, content)) or 45)
     monkeypatch.setattr(app_module, "get_total_tokens", lambda session_id: 0)
     monkeypatch.setattr(app_module, "get_math_solution_stream", fail_get_math_solution_stream)
 
@@ -398,8 +480,10 @@ def test_science_stream_redirects_graph_requests_without_calling_ai(monkeypatch)
     body = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert "data: Math" in body
-    assert "data: tutor" in body
+    assert app_module.format_stream_text("Math ") in body
+    assert app_module.format_stream_text("tutor ") in body
+    assert "event: complete" in body
+    assert '"finish_reason": "complete"' in body
     assert "[DONE:0]" in body
     assert saved_messages[0][1:] == ("user", "Graph y = x^2")
     assert saved_messages[1][0].startswith("science:")

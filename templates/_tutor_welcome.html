@@ -1,0 +1,6 @@
+<div class="message assistant welcome-message">
+    <div class="message-content tutor-welcome">
+        <img class="welcome-logo" src="{{ url_for('static', filename='assets/delphic-logo-mark.png') }}" alt="" width="48" height="44" />
+        <h2>{{ 'What are you curious about?' if tutor_mode == 'science' else 'What are you working on?' }}</h2>
+    </div>
+</div>
